@@ -9,6 +9,7 @@ function commands()
     echo "off           power off"
     echo "cycle         power cycle"
     echo "boardrev      query board revision"
+    echo "cpldrev       query CPLD revision"
 }
 
 function usage()
@@ -64,24 +65,30 @@ if [ "$command" = "" ] ; then
     usage "no command specified"
 fi
 
+declare -a ipmi_command
+
 case $command in
   sol) 
-    ipmi_command="sol activate"
+    ipmi_command[0]="sol activate"
     ;;
   sold)
-    ipmi_command="sol deactivate"
+    ipmi_command[0][1]="sol deactivate"
     ;;
   on)
-    ipmi_command="power on"
+    ipmi_command[0]="power on"
     ;;
   off)
-    ipmi_command="power off"
+    ipmi_command[0]="power off"
     ;;
   cycle)
-    ipmi_command="power cycle"
+    ipmi_command[0]="power cycle"
     ;;
   boardrev)
-    ipmi_command="raw 0x30 0x25"
+    ipmi_command[0]="raw 0x30 0x25"
+    ;;
+  cpldrev)
+    ipmi_command[0]="i2c bus=private chan=6 0x1e 1 1"
+    ipmi_command[1]="i2c bus=private chan=6 0x1e 1 0"
     ;;
   *)
     error "unrecognized command '$command'.  Valid commands are:"
@@ -89,6 +96,13 @@ case $command in
     ;;
 esac
 
-ipmitool -I lanplus -U $user -P $password -H $hostname $ipmi_command
+
+
+
+for i in `seq 0 $(expr ${#ipmi_command[@]} - 1)` ; do
+    echo $i
+    echo ${ipmi_command[$i]}
+    ipmitool -I lanplus -U $user -P $password -H $hostname ${ipmi_command[$i]}
+done
 
 exit 0
